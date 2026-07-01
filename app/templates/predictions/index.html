@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Pronósticos{% endblock %}
+{% block content %}
+<div class="page-heading">
+  <h1>Pronósticos · {{ journey.date }}</h1>
+  <a class="button secondary" href="/journeys/{{ journey.id }}">Volver</a>
+</div>
+<section class="panel">
+  <table>
+    <thead><tr><th>Especialista</th><th>Estado</th><th>Errores</th><th></th></tr></thead>
+    <tbody>
+    {% for specialist in specialists %}
+      {% set prediction = predictions.get(specialist.id) %}
+      <tr>
+        <td>{{ specialist.name }}</td>
+        <td><span class="badge">{{ prediction.status if prediction else "missing" }}</span></td>
+        <td>{{ prediction.validation_errors|length if prediction and prediction.validation_errors else 0 }}</td>
+        <td><a href="/journeys/{{ journey.id }}/predictions/{{ specialist.id }}">Abrir</a></td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endblock %}

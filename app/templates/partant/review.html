@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}Partant{% endblock %}
+{% block content %}
+<div class="page-heading">
+  <h1>Partant · {{ journey.venue }} · {{ journey.date }}</h1>
+  <a class="button secondary" href="/journeys/{{ journey.id }}">Volver</a>
+</div>
+
+{% if errors %}
+<section class="panel">
+  <h2>Errores de validación</h2>
+  <ul class="errors">{% for error in errors %}<li>{{ error.message }}</li>{% endfor %}</ul>
+</section>
+{% endif %}
+
+<form action="/journeys/{{ journey.id }}/partant" method="post">
+  {% for race in journey.races %}
+    <section class="panel">
+      <h2>Carrera {{ race.race_number }}{% if race.name %} · {{ race.name }}{% endif %}</h2>
+      <table>
+        <thead><tr><th>Nº</th><th>Caballo</th><th>Jockey</th><th>Entrenador</th></tr></thead>
+        <tbody>
+        {% for participant in race.participants %}
+          <tr>
+            <td>
+              <input type="hidden" name="participant_ids" value="{{ participant.id }}">
+              <input class="small-input" type="number" name="participant_numbers" value="{{ participant.number }}" required>
+            </td>
+            <td><input name="horse_names" value="{{ participant.horse_name }}" required></td>
+            <td>{{ participant.jockey or "" }}</td>
+            <td>{{ participant.trainer or "" }}</td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </section>
+  {% endfor %}
+  <div class="actions">
+    <button type="submit">Guardar correcciones</button>
+  </div>
+</form>
+
+<form action="/journeys/{{ journey.id }}/partant/confirm" method="post" class="actions">
+  <button type="submit" {% if errors %}disabled{% endif %}>Confirmar partant</button>
+</form>
+{% endblock %}

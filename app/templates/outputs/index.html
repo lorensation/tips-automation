@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block title %}Outputs{% endblock %}
+{% block content %}
+<div class="page-heading">
+  <h1>Outputs · {{ journey.date }}</h1>
+  <a class="button secondary" href="/journeys/{{ journey.id }}">Volver</a>
+</div>
+
+{% if blockers %}
+<section class="panel">
+  <h2>Bloqueos</h2>
+  <ul class="errors">{% for blocker in blockers %}<li>{{ blocker }}</li>{% endfor %}</ul>
+</section>
+{% endif %}
+
+<section class="panel actions">
+  <form action="/journeys/{{ journey.id }}/outputs/generate" method="post">
+    <button type="submit" {% if blockers %}disabled{% endif %}>Generar archivos</button>
+  </form>
+  <form action="/journeys/{{ journey.id }}/outputs/review" method="post">
+    <button type="submit" {% if not journey.outputs %}disabled{% endif %}>Marcar revisados</button>
+  </form>
+  <form action="/journeys/{{ journey.id }}/drive/upload" method="post">
+    <button type="submit" {% if not journey.reviewed_outputs_at %}disabled{% endif %}>Subir a Drive</button>
+  </form>
+  <a class="button secondary" href="/journeys/{{ journey.id }}/email">Previsualizar email</a>
+</section>
+
+<section class="panel">
+  <h2>Archivos</h2>
+  {% if journey.outputs %}
+  <table>
+    <thead><tr><th>Tipo</th><th>Versión</th><th>Estado</th><th>Ruta</th><th>Drive</th></tr></thead>
+    <tbody>
+      {% for output in journey.outputs %}
+      <tr>
+        <td>{{ output.type }}</td>
+        <td>{{ output.version }}</td>
+        <td><span class="badge">{{ output.status }}</span></td>
+        <td>{{ output.local_path }}</td>
+        <td>{% if output.drive_url %}<a href="{{ output.drive_url }}">Abrir</a>{% else %}-{% endif %}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+    <p class="muted">No hay archivos generados.</p>
+  {% endif %}
+</section>
+{% endblock %}

@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}Pronóstico {{ specialist.name }}{% endblock %}
+{% block content %}
+<div class="page-heading">
+  <div>
+    <h1>{{ specialist.name }}</h1>
+    <p class="muted">{{ journey.venue }} · {{ journey.date }}</p>
+  </div>
+  <a class="button secondary" href="/journeys/{{ journey.id }}/predictions">Volver</a>
+</div>
+
+{% if prediction and prediction.validation_errors %}
+<section class="panel">
+  <h2>Errores</h2>
+  <ul class="errors">{% for error in prediction.validation_errors %}<li>{{ error.message }}</li>{% endfor %}</ul>
+</section>
+{% endif %}
+
+<section class="panel">
+  <h2>Texto bruto</h2>
+  <form action="/journeys/{{ journey.id }}/predictions/{{ specialist.id }}/normalize" method="post" class="stack">
+    <textarea name="raw_text" rows="8" placeholder="Pegar mensaje aquí">{{ prediction.raw_text if prediction else "" }}</textarea>
+    <button type="submit" {% if not journey.partant_confirmed_at %}disabled{% endif %}>Normalizar con LLM</button>
+  </form>
+</section>
+
+<section class="panel">
+  <h2>Corrección manual</h2>
+  <form action="/journeys/{{ journey.id }}/predictions/{{ specialist.id }}/manual" method="post">
+    <table>
+      <thead><tr><th>Carrera</th><th>Pick 1</th><th>Pick 2</th><th>Pick 3</th></tr></thead>
+      <tbody>
+      {% for race in journey.races %}
+        {% set pick = pick_map.get(race.race_number) %}
+        <tr>
+          <td>
+            Carrera {{ race.race_number }}
+            <input type="hidden" name="race_ids" value="{{ race.id }}">
+            <input type="hidden" name="race_numbers" value="{{ race.race_number }}">
+          </td>
+          <td><input class="small-input" type="number" name="pick_1" value="{{ pick.pick_1 if pick else 1 }}" required></td>
+          <td><input class="small-input" type="number" name="pick_2" value="{{ pick.pick_2 if pick else 2 }}" required></td>
+          <td><input class="small-input" type="number" name="pick_3" value="{{ pick.pick_3 if pick else 3 }}" required></td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    <div class="actions"><button type="submit">Guardar y validar</button></div>
+  </form>
+</section>
+{% endblock %}

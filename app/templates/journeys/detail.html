@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}Jornada {{ journey.date }}{% endblock %}
+{% block content %}
+<div class="page-heading">
+  <div>
+    <h1>{{ journey.venue }} · {{ journey.date }}</h1>
+    <p class="muted">Estado: <span class="badge">{{ journey.status }}</span></p>
+  </div>
+  <a class="button secondary" href="/journeys">Histórico</a>
+</div>
+
+<section class="grid">
+  <article class="panel">
+    <h2>Estado</h2>
+    <dl class="status-list">
+      <dt>Partant confirmado</dt><dd>{{ "Sí" if journey.partant_confirmed_at else "No" }}</dd>
+      <dt>Carreras</dt><dd>{{ journey.races|length }}</dd>
+      <dt>Pronósticos</dt><dd>{{ journey.predictions|length }}/8</dd>
+      <dt>Outputs</dt><dd>{{ journey.outputs|length }}</dd>
+      <dt>Drive</dt><dd>{{ "Subido" if journey.drive_uploaded_at else "Pendiente" }}</dd>
+      <dt>Email</dt><dd>{{ "Enviado" if journey.email_sent_at else "Pendiente" }}</dd>
+    </dl>
+  </article>
+
+  <article class="panel">
+    <h2>PDF de participantes</h2>
+    <form action="/journeys/{{ journey.id }}/pdf" method="post" enctype="multipart/form-data" class="stack">
+      <input type="file" name="pdf" accept="application/pdf" required>
+      <button type="submit">Subir y parsear</button>
+    </form>
+    {% if journey.pdf_original_filename %}
+      <p class="muted">Archivo: {{ journey.pdf_original_filename }}</p>
+    {% endif %}
+  </article>
+</section>
+
+<section class="panel actions">
+  <a class="button" href="/journeys/{{ journey.id }}/partant">Ver partant</a>
+  <a class="button" href="/journeys/{{ journey.id }}/predictions">Pronósticos</a>
+  <a class="button" href="/journeys/{{ journey.id }}/outputs">Outputs</a>
+  <a class="button secondary" href="/journeys/{{ journey.id }}/email">Email</a>
+</section>
+{% endblock %}

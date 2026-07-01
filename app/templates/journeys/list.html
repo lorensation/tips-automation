@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}Jornadas{% endblock %}
+{% block content %}
+<div class="page-heading">
+  <h1>Jornadas</h1>
+  <a class="button" href="/journeys/new">Nueva jornada</a>
+</div>
+<section class="panel">
+  {% if journeys %}
+    <table>
+      <thead><tr><th>Fecha</th><th>Sede</th><th>Estado</th><th></th></tr></thead>
+      <tbody>
+      {% for journey in journeys %}
+        <tr>
+          <td>{{ journey.date }}</td>
+          <td>{{ journey.venue }}</td>
+          <td><span class="badge">{{ journey.status }}</span></td>
+          <td><a href="/journeys/{{ journey.id }}">Abrir</a></td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p class="muted">Todavía no hay jornadas.</p>
+  {% endif %}
+</section>
+{% endblock %}

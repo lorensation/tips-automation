@@ -1,0 +1,29 @@
+services:
+  app:
+    build: .
+    container_name: hipodromo-tips-app
+    ports:
+      - "8080:8080"
+    env_file:
+      - .env
+    volumes:
+      - ./generated:/app/generated
+      - ./templates_excel:/app/templates_excel
+      - ./uploads:/app/uploads
+    depends_on:
+      - db
+
+  db:
+    image: postgres:16
+    container_name: hipodromo-tips-db
+    environment:
+      POSTGRES_USER: hipodromo
+      POSTGRES_PASSWORD: hipodromo
+      POSTGRES_DB: hipodromo_tips
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:

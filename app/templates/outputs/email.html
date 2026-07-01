@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}Email{% endblock %}
+{% block content %}
+<div class="page-heading">
+  <h1>Email · {{ journey.date }}</h1>
+  <a class="button secondary" href="/journeys/{{ journey.id }}/outputs">Volver</a>
+</div>
+<section class="panel">
+  <dl class="status-list">
+    <dt>Destinatarios</dt><dd>{{ settings.email_recipients or "No configurados" }}</dd>
+    <dt>SMTP</dt><dd>{{ settings.smtp_host or "No configurado" }}</dd>
+    <dt>Asunto</dt><dd>Tips y pronósticos - {{ journey.venue }} {{ journey.date }}</dd>
+  </dl>
+  {% if blockers %}
+    <ul class="errors">{% for blocker in blockers %}<li>{{ blocker.message }}</li>{% endfor %}</ul>
+  {% endif %}
+  <form action="/journeys/{{ journey.id }}/email/send" method="post">
+    <button type="submit" {% if blockers %}disabled{% endif %}>Enviar email</button>
+  </form>
+</section>
+{% endblock %}

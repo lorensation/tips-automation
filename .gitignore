@@ -216,3 +216,12 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Hipodromo Tips Agent
+uploads/
+generated/*
+!generated/.gitkeep
+templates_excel/*
+!templates_excel/.gitkeep
+*.db
+*.sqlite
