@@ -6,6 +6,12 @@
   <a class="button secondary" href="/journeys/{{ journey.id }}">Volver</a>
 </div>
 
+{% if journey.partant_confirmed_at %}
+<section class="panel">
+  <p class="muted">Partant confirmado. El código 303 después de guardar o confirmar es normal: el formulario redirige de vuelta a esta pantalla.</p>
+</section>
+{% endif %}
+
 {% if errors %}
 <section class="panel">
   <h2>Errores de validación</h2>
@@ -18,7 +24,7 @@
     <section class="panel">
       <h2>Carrera {{ race.race_number }}{% if race.name %} · {{ race.name }}{% endif %}</h2>
       <table>
-        <thead><tr><th>Nº</th><th>Caballo</th><th>Jockey</th><th>Entrenador</th></tr></thead>
+        <thead><tr><th>Nº</th><th>Caballo</th></tr></thead>
         <tbody>
         {% for participant in race.participants %}
           <tr>
@@ -27,8 +33,6 @@
               <input class="small-input" type="number" name="participant_numbers" value="{{ participant.number }}" required>
             </td>
             <td><input name="horse_names" value="{{ participant.horse_name }}" required></td>
-            <td>{{ participant.jockey or "" }}</td>
-            <td>{{ participant.trainer or "" }}</td>
           </tr>
         {% endfor %}
         </tbody>

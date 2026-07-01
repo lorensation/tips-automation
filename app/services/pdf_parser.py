@@ -26,8 +26,8 @@ def _extract_text(path: Path) -> str:
 def _parse_text_partant(text: str) -> list[ParsedRace]:
     races: list[ParsedRace] = []
     current: ParsedRace | None = None
-    race_re = re.compile(r"(?P<num>\d+)\s*(?:ª|a|\.|-)?\s*CARRERA(?P<name>.*)", re.IGNORECASE)
-    participant_re = re.compile(r"^\s*(?P<num>\d{1,2})\s+[-.)]?\s*(?P<name>[A-ZÁÉÍÓÚÜÑ0-9' .-]{2,})")
+    race_re = re.compile(r"(?P<num>\d+)\s*\S{0,2}\s*CARRERA(?P<name>.*)", re.IGNORECASE)
+    participant_re = re.compile(r"^\s*(?P<num>\d{1,2})\s+[-.)]?\s*(?P<name>.+?)\s*$")
     distance_re = re.compile(r"(?P<distance>\d{3,4})\s*(?:m|metros)", re.IGNORECASE)
     time_re = re.compile(r"(?P<time>\d{1,2}:\d{2})")
 
@@ -58,10 +58,29 @@ def _parse_text_partant(text: str) -> list[ParsedRace]:
                 current.scheduled_time = time_match.group("time")
             participant_match = participant_re.match(line)
             if participant_match:
-                name = " ".join(participant_match.group("name").split())
-                current.participants.append(
-                    ParsedParticipant(number=int(participant_match.group("num")), horse_name=name, raw_name=name)
-                )
+                raw_name = participant_match.group("name")
+                name = _clean_participant_name(raw_name)
+                if name:
+                    current.participants.append(
+                        ParsedParticipant(
+                            number=int(participant_match.group("num")),
+                            horse_name=name,
+                            raw_name=raw_name,
+                        )
+                    )
     if current:
         races.append(current)
     return races
+
+
+def _clean_participant_name(raw_name: str) -> str:
+    name = " ".join(raw_name.split())
+    name = re.sub(r"\b\d+\s*a\S?os\b.*$", "", name, flags=re.IGNORECASE)
+    name = re.sub(r"\([^)]*\)", " ", name)
+    name = re.sub(r"\s+\d+(?:\s*[-/]\s*\d+)*\s*$", "", name)
+    name = re.sub(r"\s+", " ", name).strip(" -.,;:")
+    if not any(char.isalpha() for char in name):
+        return ""
+    if name.upper() in {"CABALLO", "EDAD", "PESO", "JOCKEY", "ENTRENADOR"}:
+        return ""
+    return name

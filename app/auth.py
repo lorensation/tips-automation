@@ -1,4 +1,5 @@
 from passlib.context import CryptContext
+from passlib.exc import UnknownHashError
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 from starlette.requests import Request
@@ -13,10 +14,19 @@ def hash_password(password: str) -> str:
     return pwd_context.hash(password)
 
 
+def is_supported_password_hash(value: str | None) -> bool:
+    if not value:
+        return False
+    return pwd_context.identify(value) is not None
+
+
 def verify_password(password: str, password_hash: str) -> bool:
     if not password_hash:
         return False
-    return pwd_context.verify(password, password_hash)
+    try:
+        return pwd_context.verify(password, password_hash)
+    except (UnknownHashError, ValueError, TypeError):
+        return False
 
 
 def get_user_from_session(request: Request, db: Session) -> User | None:

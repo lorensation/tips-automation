@@ -50,11 +50,26 @@ def normalize(
     settings = get_settings()
     journey = _load_journey(db, journey_id)
     specialist = db.get(Specialist, specialist_id)
-    provider = build_llm_provider(settings)
-    valid_numbers = {race.race_number: [participant.number for participant in race.participants] for race in journey.races}
-    normalized = normalize_prediction(provider, specialist.name, raw_text, len(journey.races), valid_numbers)
     prediction = _get_or_create_prediction(db, journey_id, specialist_id)
     prediction.raw_text = raw_text
+    try:
+        provider = build_llm_provider(settings)
+        valid_numbers = {race.race_number: [participant.number for participant in race.participants] for race in journey.races}
+        normalized = normalize_prediction(provider, specialist.name, raw_text, len(journey.races), valid_numbers)
+    except Exception as exc:
+        prediction.requires_human_review = True
+        prediction.status = PredictionStatus.REQUIRES_REVIEW
+        prediction.validation_errors = [
+            {
+                "scope": "llm",
+                "message": f"No se pudo normalizar con el proveedor LLM configurado: {type(exc).__name__}. Revisa LLM_PROVIDER, LLM_MODEL, LLM_BASE_URL y LLM_API_KEY.",
+                "race_number": None,
+                "specialist": specialist.name if specialist else None,
+                "field": None,
+            }
+        ]
+        db.commit()
+        return RedirectResponse(f"/journeys/{journey_id}/predictions/{specialist_id}", status_code=303)
     prediction.normalized_json = normalized.model_dump()
     prediction.requires_human_review = normalized.requires_human_review or (normalized.global_confidence or 0) < 0.8
     prediction.llm_provider = provider.provider_name
