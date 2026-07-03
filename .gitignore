@@ -221,7 +221,5 @@ __marimo__/
 uploads/
 generated/*
 !generated/.gitkeep
-templates_excel/*
-!templates_excel/.gitkeep
 *.db
 *.sqlite
