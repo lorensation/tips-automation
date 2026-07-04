@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+{% block title %}Preview entrada masiva{% endblock %}
+{% block content %}
+<div class="page-heading">
+  <div>
+    <h1>Previsualización</h1>
+    <p class="muted">{{ journey.venue }} · {{ journey.date }} · revisa y corrige antes de guardar</p>
+  </div>
+  <a class="button secondary" href="/journeys/{{ journey.id }}/predictions/bulk">Volver a pegar</a>
+</div>
+
+{% if provider_error %}
+<section class="panel">
+  <ul class="errors"><li>{{ provider_error }}</li></ul>
+</section>
+{% endif %}
+
+{% if missing_specialists or duplicated_specialists or unassigned_preamble %}
+<section class="panel">
+  <h2>Avisos de segmentación</h2>
+  <ul class="errors">
+    {% for name in missing_specialists %}
+      <li>No se ha detectado ningún bloque para <strong>{{ name }}</strong>.</li>
+    {% endfor %}
+    {% for name in duplicated_specialists %}
+      <li>{{ name }} aparece más de una vez: se han unido sus bloques.</li>
+    {% endfor %}
+    {% if unassigned_preamble %}
+      <li>Texto sin asignar a ningún especialista (se ignora):
+        <pre class="raw-preview">{{ unassigned_preamble }}</pre>
+      </li>
+    {% endif %}
+  </ul>
+</section>
+{% endif %}
+
+<form action="/journeys/{{ journey.id }}/predictions/bulk/confirm" method="post">
+  {{ csrf_input(request) }}
+  <input type="hidden" name="bulk_raw_text" value="{{ bulk_raw_text }}">
+
+  {% for entry in entries %}
+  {% set specialist = entry.specialist %}
+  <section class="panel {% if not entry.ok %}panel-error{% endif %}">
+    <div class="entry-heading">
+      <h2>{{ specialist.name }}</h2>
+      {% if entry.ok %}
+        <span class="badge badge-ok">Válido</span>
+      {% else %}
+        <span class="badge badge-error">{{ entry.error_count }} error(es)</span>
+      {% endif %}
+      {% if entry.requires_review %}<span class="badge">revisión</span>{% endif %}
+    </div>
+
+    <label class="include-toggle">
+      <input type="checkbox" name="include_{{ specialist.id }}" value="1" {% if entry.ok %}checked{% endif %}>
+      Guardar este especialista
+    </label>
+    <input type="hidden" name="raw_block_{{ specialist.id }}" value="{{ entry.raw_block }}">
+    <input type="hidden" name="llm_provider_{{ specialist.id }}" value="{{ entry.llm_provider or '' }}">
+    <input type="hidden" name="llm_model_{{ specialist.id }}" value="{{ entry.llm_model or '' }}">
+    <input type="hidden" name="llm_confidence_{{ specialist.id }}" value="{{ entry.confidence if entry.confidence is not none else '' }}">
+    <input type="hidden" name="requires_review_{{ specialist.id }}" value="{{ '1' if entry.requires_review else '0' }}">
+
+    {% if entry.general_errors %}
+      <ul class="errors">
+        {% for message in entry.general_errors %}<li>{{ message }}</li>{% endfor %}
+      </ul>
+    {% endif %}
+
+    <div class="table-scroll">
+    <table>
+      <thead><tr><th>Carrera</th><th>Pick 1</th><th>Pick 2</th><th>Pick 3</th><th>Errores</th></tr></thead>
+      <tbody>
+      {% for race in journey.races %}
+        {% set picks = entry.picks.get(race.race_number) %}
+        {% set race_errors = entry.errors_by_race.get(race.race_number) %}
+        <tr {% if race_errors %}class="row-error"{% endif %}>
+          <td>Carrera {{ race.race_number }}</td>
+          {% for slot in [1, 2, 3] %}
+          <td>
+            <input class="small-input" type="number" inputmode="numeric" min="1" max="99"
+                   name="pick_{{ specialist.id }}_{{ race.race_number }}_{{ slot }}"
+                   value="{{ picks[slot - 1] if picks else '' }}">
+          </td>
+          {% endfor %}
+          <td>
+            {% if race_errors %}
+              <ul class="errors compact">
+                {% for message in race_errors %}<li>{{ message }}</li>{% endfor %}
+              </ul>
+            {% else %}<span class="muted">—</span>{% endif %}
+          </td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    </div>
+
+    {% if entry.raw_block %}
+    <details>
+      <summary class="muted">Texto original del bloque</summary>
+      <pre class="raw-preview">{{ entry.raw_block }}</pre>
+    </details>
+    {% endif %}
+  </section>
+  {% endfor %}
+
+  {% if entries %}
+  <section class="panel actions">
+    <button type="submit">Guardar seleccionados</button>
+    <a class="button secondary" href="/journeys/{{ journey.id }}/predictions">Cancelar</a>
+  </section>
+  {% else %}
+  <section class="panel">
+    <p class="muted">No se ha detectado ningún especialista en el texto. Vuelve atrás y revisa el formato.</p>
+  </section>
+  {% endif %}
+</form>
+{% endblock %}

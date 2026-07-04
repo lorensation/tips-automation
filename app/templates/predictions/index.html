@@ -3,9 +3,13 @@
 {% block content %}
 <div class="page-heading">
   <h1>Pronósticos · {{ journey.date }}</h1>
-  <a class="button secondary" href="/journeys/{{ journey.id }}">Volver</a>
+  <div class="actions-inline">
+    <a class="button" href="/journeys/{{ journey.id }}/predictions/bulk">Entrada masiva</a>
+    <a class="button secondary" href="/journeys/{{ journey.id }}">Volver</a>
+  </div>
 </div>
 <section class="panel">
+  <div class="table-scroll">
   <table>
     <thead><tr><th>Especialista</th><th>Estado</th><th>Errores</th><th></th></tr></thead>
     <tbody>
@@ -20,5 +24,6 @@
     {% endfor %}
     </tbody>
   </table>
+  </div>
 </section>
 {% endblock %}

@@ -1,0 +1,18 @@
+{# Espera `errors`: lista de dicts/objetos con race_number y message. #}
+{% if errors %}
+  {% set general = errors | selectattr("race_number", "none") | list %}
+  {% set by_race = errors | rejectattr("race_number", "none") | list %}
+  {% if general %}
+    <ul class="errors">
+      {% for error in general %}<li>{{ error.message }}</li>{% endfor %}
+    </ul>
+  {% endif %}
+  {% for race_number, race_errors in by_race | groupby("race_number") %}
+    <div class="error-group">
+      <strong>Carrera {{ race_number }}</strong>
+      <ul class="errors">
+        {% for error in race_errors %}<li>{{ error.message }}</li>{% endfor %}
+      </ul>
+    </div>
+  {% endfor %}
+{% endif %}

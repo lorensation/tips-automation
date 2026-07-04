@@ -12,13 +12,16 @@
 {% if prediction and prediction.validation_errors %}
 <section class="panel">
   <h2>Errores</h2>
-  <ul class="errors">{% for error in prediction.validation_errors %}<li>{{ error.message }}</li>{% endfor %}</ul>
+  {% with errors = prediction.validation_errors %}
+    {% include "predictions/_errors_grouped.html" %}
+  {% endwith %}
 </section>
 {% endif %}
 
 <section class="panel">
   <h2>Texto bruto</h2>
   <form action="/journeys/{{ journey.id }}/predictions/{{ specialist.id }}/normalize" method="post" class="stack">
+    {{ csrf_input(request) }}
     <textarea name="raw_text" rows="8" placeholder="Pegar mensaje aquí">{{ prediction.raw_text if prediction else "" }}</textarea>
     <button type="submit" {% if not journey.partant_confirmed_at %}disabled{% endif %}>Normalizar con LLM</button>
   </form>
@@ -27,6 +30,8 @@
 <section class="panel">
   <h2>Corrección manual</h2>
   <form action="/journeys/{{ journey.id }}/predictions/{{ specialist.id }}/manual" method="post">
+    {{ csrf_input(request) }}
+    <div class="table-scroll">
     <table>
       <thead><tr><th>Carrera</th><th>Pick 1</th><th>Pick 2</th><th>Pick 3</th></tr></thead>
       <tbody>
@@ -45,6 +50,7 @@
       {% endfor %}
       </tbody>
     </table>
+    </div>
     <div class="actions"><button type="submit">Guardar y validar</button></div>
   </form>
 </section>
