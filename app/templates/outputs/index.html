@@ -6,6 +6,22 @@
   <a class="button secondary" href="/journeys/{{ journey.id }}">Volver</a>
 </div>
 
+{% if error %}
+<section class="panel">
+  <ul class="errors">
+    {% if error == "tips_template" %}
+      <li>No se pudo generar el Excel de Tips: revisa que la plantilla exista y tenga la hoja de la sede. Detalle en los logs.</li>
+    {% elif error == "cuadro" %}
+      <li>No se pudo añadir la jornada al cuadro acumulativo. El archivo original está protegido por backup. Detalle en los logs.</li>
+    {% elif error == "drive" %}
+      <li>Fallo al subir a Drive. Revisa credenciales y conexión.</li>
+    {% else %}
+      <li>Se produjo un error: {{ error }}</li>
+    {% endif %}
+  </ul>
+</section>
+{% endif %}
+
 {% if blockers %}
 <section class="panel">
   <h2>Bloqueos</h2>
@@ -15,12 +31,19 @@
 
 <section class="panel actions">
   <form action="/journeys/{{ journey.id }}/outputs/generate" method="post">
-    <button type="submit" {% if blockers %}disabled{% endif %}>Generar archivos</button>
+    {{ csrf_input(request) }}
+    <button type="submit" {% if blockers %}disabled{% endif %}>Generar Tips + cuadro visual</button>
+  </form>
+  <form action="/journeys/{{ journey.id }}/outputs/cuadro" method="post">
+    {{ csrf_input(request) }}
+    <button type="submit" {% if blockers %}disabled{% endif %}>Añadir al cuadro acumulativo</button>
   </form>
   <form action="/journeys/{{ journey.id }}/outputs/review" method="post">
+    {{ csrf_input(request) }}
     <button type="submit" {% if not journey.outputs %}disabled{% endif %}>Marcar revisados</button>
   </form>
   <form action="/journeys/{{ journey.id }}/drive/upload" method="post">
+    {{ csrf_input(request) }}
     <button type="submit" {% if not journey.reviewed_outputs_at %}disabled{% endif %}>Subir a Drive</button>
   </form>
   <a class="button secondary" href="/journeys/{{ journey.id }}/email">Previsualizar email</a>
@@ -29,20 +52,26 @@
 <section class="panel">
   <h2>Archivos</h2>
   {% if journey.outputs %}
+  <div class="table-scroll">
   <table>
-    <thead><tr><th>Tipo</th><th>Versión</th><th>Estado</th><th>Ruta</th><th>Drive</th></tr></thead>
+    <thead><tr><th>Tipo</th><th>Versión</th><th>Estado</th><th>Descargar</th><th>Drive</th></tr></thead>
     <tbody>
       {% for output in journey.outputs %}
       <tr>
         <td>{{ output.type }}</td>
         <td>{{ output.version }}</td>
         <td><span class="badge">{{ output.status }}</span></td>
-        <td>{{ output.local_path }}</td>
+        <td>
+          {% if output.local_path %}
+            <a href="/journeys/{{ journey.id }}/outputs/{{ output.id }}/download">Descargar</a>
+          {% else %}-{% endif %}
+        </td>
         <td>{% if output.drive_url %}<a href="{{ output.drive_url }}">Abrir</a>{% else %}-{% endif %}</td>
       </tr>
       {% endfor %}
     </tbody>
   </table>
+  </div>
   {% else %}
     <p class="muted">No hay archivos generados.</p>
   {% endif %}

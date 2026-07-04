@@ -33,6 +33,7 @@ class OutputType(StrEnum):
     TIPS_EXCEL = "tips_excel"
     PRONOSTICOS_PNG = "pronosticos_png"
     PRONOSTICOS_PDF = "pronosticos_pdf"
+    CUADRO_EXCEL = "cuadro_excel"
 
 
 class OutputStatus(StrEnum):
@@ -62,4 +63,15 @@ VENUE_THEMES = {
     "DOS_HERMANAS": "orange",
     "SANLUCAR": "yellow",
     "PINEDA": "purple",
+}
+
+
+# Sheet name in the Tips template workbook for each venue.
+VENUE_TIPS_SHEETS = {
+    "HZ_MADRID": "HZ",
+    "HZ_NOCTURNAS": "NOCTURNAS",
+    "SAN_SEBASTIAN": "SS",
+    "DOS_HERMANAS": "DH",
+    "SANLUCAR": "SL",
+    "PINEDA": "PIN",
 }

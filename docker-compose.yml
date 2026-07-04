@@ -10,6 +10,7 @@ services:
       - ./generated:/app/generated
       - ./templates_excel:/app/templates_excel
       - ./uploads:/app/uploads
+      - ./data:/app/data
     depends_on:
       - db
 

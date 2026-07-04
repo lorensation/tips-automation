@@ -223,3 +223,4 @@ generated/*
 !generated/.gitkeep
 *.db
 *.sqlite
+data/
