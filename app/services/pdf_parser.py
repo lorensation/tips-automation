@@ -26,9 +26,9 @@ def _extract_text(path: Path) -> str:
 def _parse_text_partant(text: str) -> list[ParsedRace]:
     races: list[ParsedRace] = []
     current: ParsedRace | None = None
-    race_re = re.compile(r"(?P<num>\d+)\s*\S{0,2}\s*CARRERA(?P<name>.*)", re.IGNORECASE)
+    race_re = re.compile(r"^\s*(?P<num>\d+)\s*(?:ª|º|a|o|\.|-)?\s*CARRERA\b(?P<name>.*)$", re.IGNORECASE)
     participant_re = re.compile(r"^\s*(?P<num>\d{1,2})\s+[-.)]?\s*(?P<name>.+?)\s*$")
-    distance_re = re.compile(r"(?P<distance>\d{3,4})\s*(?:m|metros)", re.IGNORECASE)
+    distance_re = re.compile(r"(?P<distance>\d{1,2}(?:\.\d{3})|\d{3,4})\s*(?:m|metros)", re.IGNORECASE)
     time_re = re.compile(r"(?P<time>\d{1,2}:\d{2})")
 
     for raw_line in text.splitlines():
@@ -47,13 +47,13 @@ def _parse_text_partant(text: str) -> list[ParsedRace]:
             time_match = time_re.search(line)
             distance_match = distance_re.search(line)
             current.scheduled_time = time_match.group("time") if time_match else None
-            current.distance_meters = int(distance_match.group("distance")) if distance_match else None
+            current.distance_meters = _parse_distance(distance_match.group("distance")) if distance_match else None
             continue
         if current:
             distance_match = distance_re.search(line)
             time_match = time_re.search(line)
             if distance_match and current.distance_meters is None:
-                current.distance_meters = int(distance_match.group("distance"))
+                current.distance_meters = _parse_distance(distance_match.group("distance"))
             if time_match and current.scheduled_time is None:
                 current.scheduled_time = time_match.group("time")
             participant_match = participant_re.match(line)
@@ -70,11 +70,12 @@ def _parse_text_partant(text: str) -> list[ParsedRace]:
                     )
     if current:
         races.append(current)
-    return races
+    return _deduplicate_races(races)
 
 
 def _clean_participant_name(raw_name: str) -> str:
     name = " ".join(raw_name.split())
+    name = re.sub(r"\s+\d{1,2}\s+\d{2}(?:,\d+)?\b.*$", "", name)
     name = re.sub(r"\b\d+\s*a\S?os\b.*$", "", name, flags=re.IGNORECASE)
     name = re.sub(r"\([^)]*\)", " ", name)
     name = re.sub(r"\s+\d+(?:\s*[-/]\s*\d+)*\s*$", "", name)
@@ -84,3 +85,30 @@ def _clean_participant_name(raw_name: str) -> str:
     if name.upper() in {"CABALLO", "EDAD", "PESO", "JOCKEY", "ENTRENADOR"}:
         return ""
     return name
+
+
+def _parse_distance(raw_distance: str) -> int:
+    return int(raw_distance.replace(".", ""))
+
+
+def _deduplicate_races(races: list[ParsedRace]) -> list[ParsedRace]:
+    by_number: dict[int, ParsedRace] = {}
+    for race in races:
+        existing = by_number.get(race.race_number)
+        if existing is None:
+            by_number[race.race_number] = race
+            continue
+        if _race_quality(race) > _race_quality(existing):
+            by_number[race.race_number] = race
+            existing, race = race, existing
+        existing_numbers = {participant.number for participant in existing.participants}
+        for participant in race.participants:
+            if participant.number not in existing_numbers:
+                existing.participants.append(participant)
+                existing_numbers.add(participant.number)
+    return [by_number[number] for number in sorted(by_number)]
+
+
+def _race_quality(race: ParsedRace) -> tuple[int, int]:
+    useful_name = 0 if not race.name or race.name.strip(" .-") == "" else 1
+    return (len(race.participants), useful_name)

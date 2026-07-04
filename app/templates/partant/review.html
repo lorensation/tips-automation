@@ -20,11 +20,13 @@
 {% endif %}
 
 <form action="/journeys/{{ journey.id }}/partant" method="post">
+  {{ csrf_input(request) }}
   {% for race in journey.races %}
     <section class="panel">
       <h2>Carrera {{ race.race_number }}{% if race.name %} · {{ race.name }}{% endif %}</h2>
+      <div class="table-scroll">
       <table>
-        <thead><tr><th>Nº</th><th>Caballo</th></tr></thead>
+        <thead><tr><th>Nº</th><th>Caballo</th><th>Corre</th></tr></thead>
         <tbody>
         {% for participant in race.participants %}
           <tr>
@@ -33,10 +35,14 @@
               <input class="small-input" type="number" name="participant_numbers" value="{{ participant.number }}" required>
             </td>
             <td><input name="horse_names" value="{{ participant.horse_name }}" required></td>
+            <td class="center">
+              <input type="checkbox" name="active_{{ participant.id }}" value="1" {% if participant.is_active %}checked{% endif %}>
+            </td>
           </tr>
         {% endfor %}
         </tbody>
       </table>
+      </div>
     </section>
   {% endfor %}
   <div class="actions">
@@ -45,6 +51,7 @@
 </form>
 
 <form action="/journeys/{{ journey.id }}/partant/confirm" method="post" class="actions">
+  {{ csrf_input(request) }}
   <button type="submit" {% if errors %}disabled{% endif %}>Confirmar partant</button>
 </form>
 {% endblock %}

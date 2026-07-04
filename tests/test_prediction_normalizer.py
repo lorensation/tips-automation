@@ -57,6 +57,34 @@ def test_mock_provider_normalizes_whatsapp_numbered_messages() -> None:
     assert result.races[4].pick_3 == 8
 
 
+def test_mock_provider_normalizes_whatsapp_with_date_time_noise_and_extra_lines() -> None:
+    result = normalize_prediction(
+        MockProvider(),
+        "ESTEBAN ROMERA",
+        "\n".join(
+            [
+                "[10:25, 7/3/2026] Esteban Romera: 1) 5-3-2",
+                "[10:25, 7/3/2026] Esteban Romera: 2) 2-5-4",
+                "[10:39, 7/3/2026] Esteban Romera: 3) 5-1-7",
+                "[10:40, 7/3/2026] Esteban Romera: 4) 3-8-1",
+                "[10:40, 7/3/2026] Esteban Romera: Y",
+                "[10:40, 7/3/2026] Esteban Romera: 5) 4-7-9",
+                "[10:40, 7/3/2026] Esteban Romera: Saludos",
+            ]
+        ),
+        5,
+        {race: list(range(1, 15)) for race in range(1, 6)},
+    )
+
+    assert [(race.pick_1, race.pick_2, race.pick_3) for race in result.races] == [
+        (5, 3, 2),
+        (2, 5, 4),
+        (5, 1, 7),
+        (3, 8, 1),
+        (4, 7, 9),
+    ]
+
+
 def test_mock_provider_normalizes_named_horse_lines() -> None:
     result = normalize_prediction(
         MockProvider(),

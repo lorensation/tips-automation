@@ -5,6 +5,8 @@ from app.models.journey import Journey
 from app.models.prediction import Prediction
 from app.schemas.validation import ValidationErrorItem, ValidationResult
 
+MIN_ACTIVE_PARTICIPANTS = 3
+
 
 def validate_partant(journey: Journey) -> ValidationResult:
     errors: list[ValidationErrorItem] = []
@@ -22,24 +24,35 @@ def validate_partant(journey: Journey) -> ValidationResult:
         for participant in race.participants:
             if not participant.horse_name.strip():
                 errors.append(ValidationErrorItem(scope="participant", race_number=race.race_number, message=f"El participante nº {participant.number} no tiene nombre."))
+        active_count = sum(1 for participant in race.participants if participant.is_active)
+        if race.participants and active_count < MIN_ACTIVE_PARTICIPANTS:
+            errors.append(
+                ValidationErrorItem(
+                    scope="race",
+                    race_number=race.race_number,
+                    message=f"La carrera {race.race_number} no tiene al menos {MIN_ACTIVE_PARTICIPANTS} participantes activos.",
+                )
+            )
     return ValidationResult(ok=not errors, errors=errors)
 
 
-def validate_prediction(journey: Journey, prediction: Prediction) -> ValidationResult:
+def validate_picks(
+    journey: Journey,
+    specialist_name: str | None,
+    picks_by_race: dict[int, tuple[int, int, int]],
+) -> ValidationResult:
+    """Regla determinista única para picks; la usan el flujo individual y el masivo."""
     errors: list[ValidationErrorItem] = []
-    specialist_name = prediction.specialist.name if prediction.specialist else None
     if specialist_name not in SPECIALIST_NAMES:
         errors.append(ValidationErrorItem(scope="specialist", specialist=specialist_name, message="Especialista no válido."))
 
     races_by_number = {race.race_number: race for race in journey.races}
-    picks_by_race = {pick.race_number: pick for pick in prediction.picks}
 
     for race_number, race in races_by_number.items():
-        pick = picks_by_race.get(race_number)
-        if pick is None:
+        values = picks_by_race.get(race_number)
+        if values is None:
             errors.append(_prediction_error(specialist_name, race_number, "Faltan picks para esta carrera."))
             continue
-        values = [pick.pick_1, pick.pick_2, pick.pick_3]
         if len(set(values)) != 3:
             errors.append(_prediction_error(specialist_name, race_number, "Hay picks duplicados en la misma carrera."))
         valid_numbers = {participant.number for participant in race.participants if participant.is_active}
@@ -52,7 +65,10 @@ def validate_prediction(journey: Journey, prediction: Prediction) -> ValidationR
                         specialist=specialist_name,
                         race_number=race_number,
                         field=field,
-                        message=f"{specialist_name} - Carrera {race_number}: el caballo nº {value} no existe. Participantes válidos: {valid}.",
+                        message=(
+                            f"{specialist_name} - Carrera {race_number}: el caballo nº {value} no existe "
+                            f"o está retirado. Participantes válidos: {valid}."
+                        ),
                     )
                 )
 
@@ -61,6 +77,12 @@ def validate_prediction(journey: Journey, prediction: Prediction) -> ValidationR
         errors.append(_prediction_error(specialist_name, race_number, "La carrera no existe en el partant oficial."))
 
     return ValidationResult(ok=not errors, errors=errors)
+
+
+def validate_prediction(journey: Journey, prediction: Prediction) -> ValidationResult:
+    specialist_name = prediction.specialist.name if prediction.specialist else None
+    picks_by_race = {pick.race_number: (pick.pick_1, pick.pick_2, pick.pick_3) for pick in prediction.picks}
+    return validate_picks(journey, specialist_name, picks_by_race)
 
 
 def can_generate_outputs(journey: Journey, active_specialists_count: int = 8) -> ValidationResult:
