@@ -32,11 +32,11 @@
 <section class="panel actions">
   <form action="/journeys/{{ journey.id }}/outputs/generate" method="post">
     {{ csrf_input(request) }}
-    <button type="submit" {% if blockers %}disabled{% endif %}>Generar Tips + cuadro visual</button>
+    <button type="submit" {% if blockers %}disabled{% endif %}>Generar Tips + cuadro visual (PNG/PDF)</button>
   </form>
   <form action="/journeys/{{ journey.id }}/outputs/cuadro" method="post">
     {{ csrf_input(request) }}
-    <button type="submit" {% if blockers %}disabled{% endif %}>Añadir al cuadro acumulativo</button>
+    <button type="submit" {% if blockers %}disabled{% endif %}>Añadir al cuadro acumulativo (Excel)</button>
   </form>
   <form action="/journeys/{{ journey.id }}/outputs/review" method="post">
     {{ csrf_input(request) }}

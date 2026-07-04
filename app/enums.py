@@ -75,3 +75,16 @@ VENUE_TIPS_SHEETS = {
     "SANLUCAR": "SL",
     "PINEDA": "PIN",
 }
+
+
+# Gama de color por tema de sede (hex RRGGBB sin alfa): "dark" para cabeceras/
+# título/consenso, "light" para bandas alternas. Compartida por el Excel del
+# cuadro acumulativo y el cuadro visual PNG/PDF.
+THEME_PALETTES = {
+    "blue": {"dark": "2E74B5", "light": "DCE6F1"},
+    "black": {"dark": "262626", "light": "D9D9D9"},
+    "green": {"dark": "548235", "light": "E2EFDA"},
+    "orange": {"dark": "C55A11", "light": "FBE5D6"},
+    "yellow": {"dark": "BF8F00", "light": "FFF2CC"},
+    "purple": {"dark": "7030A0", "light": "E6DFEC"},
+}

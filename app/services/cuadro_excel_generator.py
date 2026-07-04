@@ -26,8 +26,10 @@ from openpyxl.utils import get_column_letter
 from openpyxl.worksheet.worksheet import Worksheet
 
 from app.config import Settings
+from app.enums import THEME_PALETTES
 from app.models.journey import Journey
 from app.services.consensus import PickRow, calculate_consensus
+from app.services.validation_engine import validate_prediction
 from app.utils import utcnow
 
 logger = logging.getLogger(__name__)
@@ -47,16 +49,6 @@ FIRST_PAIR_COL = 4  # columna D
 TEMPLATE_IMAGE_ENTRY = "xl/media/image1.jpeg"
 _VIRGIN_CELL = (1, 40)
 
-CUADRO_PALETTES = {
-    "blue": {"dark": "FF2E74B5", "light": "FFDCE6F1"},
-    "black": {"dark": "FF262626", "light": "FFD9D9D9"},
-    "green": {"dark": "FF548235", "light": "FFE2EFDA"},
-    "orange": {"dark": "FFC55A11", "light": "FFFBE5D6"},
-    "yellow": {"dark": "FFBF8F00", "light": "FFFFF2CC"},
-    "purple": {"dark": "FF7030A0", "light": "FFE6DFEC"},
-}
-
-
 class CuadroGenerationError(Exception):
     pass
 
@@ -70,6 +62,9 @@ def append_journey_sheet(journey: Journey, settings: Settings) -> tuple[Path, st
     n_races = len(journey.races)
     if n_races == 0:
         raise CuadroGenerationError("La jornada no tiene carreras.")
+    # Cross-matching determinista ANTES de tocar nada: si hay cualquier error,
+    # el acumulativo no se modifica (ni siquiera se crea backup).
+    _validate_journey_predictions(journey)
 
     bootstrapped = _bootstrap_if_missing(acc_path, template_path)
     backup_path = _backup(acc_path, settings.pronos_backup_dir)
@@ -111,6 +106,22 @@ def append_journey_sheet(journey: Journey, settings: Settings) -> tuple[Path, st
         sheet_name, "reemplazada" if replaced else "añadida", acc_path, backup_path, bootstrapped,
     )
     return acc_path, sheet_name, replaced
+
+
+def _validate_journey_predictions(journey: Journey) -> None:
+    errors: list[str] = []
+    if len(journey.predictions) != N_SPECIALIST_BLOCKS:
+        errors.append(
+            f"Se esperaban {N_SPECIALIST_BLOCKS} pronósticos y hay {len(journey.predictions)}."
+        )
+    for prediction in journey.predictions:
+        result = validate_prediction(journey, prediction)
+        errors.extend(error.message for error in result.errors)
+    if errors:
+        raise CuadroGenerationError(
+            "Validación bloqueante del cuadro (el acumulativo no se ha modificado):\n- "
+            + "\n- ".join(errors)
+        )
 
 
 def _sheet_name(journey: Journey, settings: Settings) -> str:
@@ -334,12 +345,12 @@ def _fill_sheet(ws: Worksheet, journey: Journey, settings: Settings) -> None:
 
 
 def _recolor(ws: Worksheet, theme: str, n_races: int) -> None:
-    palette = CUADRO_PALETTES.get(theme)
+    palette = THEME_PALETTES.get(theme)
     if palette is None:
         logger.warning("Tema sin paleta para el cuadro: %s (se mantiene el azul de plantilla)", theme)
         return
-    dark = PatternFill("solid", fgColor=palette["dark"])
-    light = PatternFill("solid", fgColor=palette["light"])
+    dark = PatternFill("solid", fgColor=f"FF{palette['dark']}")
+    light = PatternFill("solid", fgColor=f"FF{palette['light']}")
     last_col = _pair_columns(n_races)[1]
     for row in range(TITLE_TOP, CONSENSUS_ROW + 1):
         for col in range(1, last_col + 1):
