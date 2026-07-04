@@ -1,9 +1,8 @@
-from datetime import datetime
+import logging
 from pathlib import Path
 
 from fastapi import APIRouter, Depends
 from fastapi.responses import HTMLResponse, RedirectResponse
-from fastapi.templating import Jinja2Templates
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 from starlette.requests import Request
@@ -15,12 +14,16 @@ from app.enums import JourneyStatus, OutputStatus
 from app.models.generated_output import GeneratedOutput
 from app.models.journey import Journey
 from app.models.user import User
+from app.security import verify_csrf
 from app.services.drive_uploader import upload_file_to_drive
 from app.services.email_sender import send_outputs_email
 from app.services.output_guard import can_run_final_action
+from app.templating import templates
+from app.utils import utcnow
 
-router = APIRouter(prefix="/journeys/{journey_id}", tags=["integrations"])
-templates = Jinja2Templates(directory="app/templates")
+logger = logging.getLogger(__name__)
+
+router = APIRouter(prefix="/journeys/{journey_id}", tags=["integrations"], dependencies=[Depends(verify_csrf)])
 
 
 @router.post("/drive/upload")
@@ -35,13 +38,14 @@ def upload_drive(journey_id: str, db: Session = Depends(get_db), user: User = De
             output.drive_file_id = result.file_id
             output.drive_url = result.url
             output.status = OutputStatus.UPLOADED
-            output.uploaded_at = datetime.utcnow()
+            output.uploaded_at = utcnow()
     except Exception:
+        logger.exception("Drive upload failed for journey %s", journey_id)
         for output in journey.outputs:
             output.status = OutputStatus.FAILED
         db.commit()
         return RedirectResponse(f"/journeys/{journey_id}/outputs?error=drive", status_code=303)
-    journey.drive_uploaded_at = datetime.utcnow()
+    journey.drive_uploaded_at = utcnow()
     journey.status = JourneyStatus.DRIVE_UPLOADED
     db.commit()
     return RedirectResponse(f"/journeys/{journey_id}/outputs", status_code=303)
@@ -67,11 +71,12 @@ def email_send(journey_id: str, db: Session = Depends(get_db), user: User = Depe
     try:
         send_outputs_email(settings, subject, body, paths)
     except Exception:
+        logger.exception("Email send failed for journey %s", journey_id)
         for output in journey.outputs:
             output.status = OutputStatus.FAILED
         db.commit()
         return RedirectResponse(f"/journeys/{journey_id}/email?error=smtp", status_code=303)
-    now = datetime.utcnow()
+    now = utcnow()
     for output in journey.outputs:
         output.status = OutputStatus.SENT
         output.sent_at = now

@@ -2,7 +2,6 @@ from datetime import date
 
 from fastapi import APIRouter, Depends, Form
 from fastapi.responses import HTMLResponse, RedirectResponse
-from fastapi.templating import Jinja2Templates
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 from starlette.requests import Request
@@ -12,9 +11,10 @@ from app.dependencies import current_user, require_admin
 from app.enums import JourneyStatus, VENUE_THEMES
 from app.models.journey import Journey
 from app.models.user import User
+from app.security import verify_csrf
+from app.templating import templates
 
-router = APIRouter(prefix="/journeys", tags=["journeys"])
-templates = Jinja2Templates(directory="app/templates")
+router = APIRouter(prefix="/journeys", tags=["journeys"], dependencies=[Depends(verify_csrf)])
 
 
 @router.get("", response_class=HTMLResponse)
@@ -62,4 +62,19 @@ def journey_detail(request: Request, journey_id: str, db: Session = Depends(get_
     )
     if journey is None:
         return templates.TemplateResponse("404.html", {"request": request}, status_code=404)
-    return templates.TemplateResponse("journeys/detail.html", {"request": request, "journey": journey, "user": user})
+    error_messages = {
+        "pdf_type": "El archivo subido no parece un PDF válido.",
+        "pdf_size": "El PDF supera el tamaño máximo permitido.",
+        "partant_parse_empty": "No se encontraron carreras en el PDF. Revisa que sea el PDF de participantes definitivos.",
+        "partant_parse_invalid": "El parser encontró carreras o participantes duplicados/inválidos. Revisa el log y vuelve a subir el PDF.",
+    }
+    error_code = request.query_params.get("error")
+    return templates.TemplateResponse(
+        "journeys/detail.html",
+        {
+            "request": request,
+            "journey": journey,
+            "user": user,
+            "error_message": error_messages.get(error_code),
+        },
+    )

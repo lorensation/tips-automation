@@ -12,6 +12,7 @@
     <a class="brand" href="/journeys">Hipódromo Tips Agent</a>
     {% if user %}
       <form action="/logout" method="post">
+        {{ csrf_input(request) }}
         <span>{{ user.email }}</span>
         <button type="submit">Salir</button>
       </form>

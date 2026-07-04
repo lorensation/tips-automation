@@ -8,11 +8,13 @@ from app.config import get_settings
 from app.database import Base, SessionLocal, engine
 from app.enums import SPECIALIST_NAMES, UserRole
 from app.auth import hash_password, is_supported_password_hash
+from app.logging_config import configure_logging
 from app.models import Specialist, User  # noqa: F401
 from app.routers import auth, integrations, journeys, outputs, partant, predictions
 
 
 def create_app() -> FastAPI:
+    configure_logging()
     settings = get_settings()
     app = FastAPI(title="Hipódromo Tips Agent")
     app.add_middleware(
@@ -35,6 +37,8 @@ def create_app() -> FastAPI:
     def startup() -> None:
         settings.upload_dir.mkdir(exist_ok=True)
         settings.generated_dir.mkdir(exist_ok=True)
+        settings.pronos_file_path.parent.mkdir(parents=True, exist_ok=True)
+        settings.pronos_backup_dir.mkdir(parents=True, exist_ok=True)
         Base.metadata.create_all(bind=engine)
         _seed_reference_data()
 

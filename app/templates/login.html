@@ -5,6 +5,7 @@
   <h1>Acceso interno</h1>
   {% if error %}<p class="error">{{ error }}</p>{% endif %}
   <form action="/login" method="post" class="stack">
+    {{ csrf_input(request) }}
     <label>Email <input name="email" type="email" required autofocus></label>
     <label>Contraseña <input name="password" type="password" required></label>
     <button type="submit">Entrar</button>

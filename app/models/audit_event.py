@@ -5,6 +5,7 @@ from sqlalchemy import DateTime, ForeignKey, JSON, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.database import Base
+from app.utils import utcnow
 
 
 class AuditEvent(Base):
@@ -15,4 +16,4 @@ class AuditEvent(Base):
     user_id: Mapped[str | None] = mapped_column(String(36), ForeignKey("users.id"))
     event_type: Mapped[str] = mapped_column(String(120), nullable=False)
     payload: Mapped[dict | None] = mapped_column(JSON)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False)

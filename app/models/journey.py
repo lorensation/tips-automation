@@ -6,6 +6,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
 from app.enums import JourneyStatus
+from app.utils import utcnow
 
 
 class Journey(Base):
@@ -24,8 +25,8 @@ class Journey(Base):
     drive_uploaded_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     email_sent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     created_by_user_id: Mapped[str | None] = mapped_column(String(36), ForeignKey("users.id"))
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, nullable=False)
-    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow, nullable=False)
 
     races = relationship("Race", back_populates="journey", cascade="all, delete-orphan", order_by="Race.race_number")
     predictions = relationship("Prediction", back_populates="journey", cascade="all, delete-orphan")

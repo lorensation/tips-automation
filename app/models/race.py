@@ -5,6 +5,7 @@ from sqlalchemy import DateTime, ForeignKey, Integer, String, Time, UniqueConstr
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
+from app.utils import utcnow
 
 
 class Race(Base):
@@ -18,7 +19,7 @@ class Race(Base):
     scheduled_time: Mapped[time | None] = mapped_column(Time)
     distance_meters: Mapped[int | None] = mapped_column(Integer)
     surface: Mapped[str | None] = mapped_column(String(80))
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False)
 
     journey = relationship("Journey", back_populates="races")
     participants = relationship("Participant", back_populates="race", cascade="all, delete-orphan", order_by="Participant.number")

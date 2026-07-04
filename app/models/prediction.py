@@ -6,6 +6,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
 from app.enums import PredictionStatus
+from app.utils import utcnow
 
 
 class Prediction(Base):
@@ -23,8 +24,8 @@ class Prediction(Base):
     llm_provider: Mapped[str | None] = mapped_column(String(80))
     llm_model: Mapped[str | None] = mapped_column(String(120))
     llm_confidence: Mapped[float | None] = mapped_column(Float)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, nullable=False)
-    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow, nullable=False)
 
     journey = relationship("Journey", back_populates="predictions")
     specialist = relationship("Specialist")

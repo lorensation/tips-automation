@@ -4,6 +4,7 @@
 <section class="panel narrow">
   <h1>Nueva jornada</h1>
   <form action="/journeys" method="post" class="stack">
+    {{ csrf_input(request) }}
     <label>Fecha <input type="date" name="journey_date" required></label>
     <label>Sede
       <select name="venue" required>

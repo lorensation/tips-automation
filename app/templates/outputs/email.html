@@ -15,6 +15,7 @@
     <ul class="errors">{% for blocker in blockers %}<li>{{ blocker.message }}</li>{% endfor %}</ul>
   {% endif %}
   <form action="/journeys/{{ journey.id }}/email/send" method="post">
+    {{ csrf_input(request) }}
     <button type="submit" {% if blockers %}disabled{% endif %}>Enviar email</button>
   </form>
 </section>

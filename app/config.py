@@ -45,6 +45,15 @@ class Settings(BaseSettings):
     templates_excel_dir: Path = Path("templates_excel")
     max_pdf_bytes: int = 15 * 1024 * 1024
 
+    tips_template_filename: str = "Tips _Ejemplo.xlsx"
+    cuadro_template_filename: str = "Cuadro_Pronosticos_Ejemplo.xlsx"
+    pronos_file_path: Path = Path("data/PRONOS 2026.xlsx")
+    pronos_backup_dir: Path = Path("data/backups")
+    cuadro_sheet_name_pattern: str = "PRO_{dd}_{mm}"
+
+    login_max_attempts: int = Field(default=5, ge=1)
+    login_window_seconds: int = Field(default=300, ge=1)
+
     @property
     def email_recipient_list(self) -> list[str]:
         return [item.strip() for item in self.email_recipients.split(",") if item.strip()]
