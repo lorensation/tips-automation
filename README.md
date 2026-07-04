@@ -2,6 +2,9 @@
 
 Aplicación interna para automatizar la creación, validación, generación y envío de Tips y Pronósticos de jornadas de carreras de caballos.
 
+> Historial de la última iteración (auditoría, decisiones, riesgos y próximos
+> pasos): [docs/iteracion_2026-07-04.md](docs/iteracion_2026-07-04.md)
+
 ## Stack
 
 - FastAPI + Jinja2 (HTMX cargado, UI server-rendered)
