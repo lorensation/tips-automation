@@ -111,6 +111,32 @@ def test_mock_provider_normalizes_named_horse_lines() -> None:
     ]
 
 
+def test_mock_provider_normalizes_interleaved_dorsal_and_horse_names() -> None:
+    result = normalize_prediction(
+        MockProvider(),
+        "ANDER GALDONA",
+        "\n".join(
+            [
+                "1 carrera: 1 Mauro 2 flaming glass 3 machu pichu",
+                "2 carrera: 2 Agador 5 it not now 1 súper llover",
+                "3 carrera: 2 natural forcé 1 ambished 3 surrey shadow",
+                "4 carrera: 4 Stepinmydirection 3 villaires 2 summercake",
+                "5 carrera: 4 imperial stoute 3 high dinasty 5 la verdiasca",
+            ]
+        ),
+        5,
+        {1: [1, 2, 3, 4], 2: [1, 2, 3, 4, 5], 3: [1, 2, 3, 4], 4: list(range(1, 11)), 5: list(range(1, 8))},
+    )
+
+    assert [(race.pick_1, race.pick_2, race.pick_3) for race in result.races] == [
+        (1, 2, 3),
+        (2, 5, 1),
+        (2, 1, 3),
+        (4, 3, 2),
+        (4, 3, 5),
+    ]
+
+
 def test_mock_provider_normalizes_race_label_followed_by_triplet() -> None:
     result = normalize_prediction(
         MockProvider(),

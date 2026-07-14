@@ -31,6 +31,13 @@ VALID_PAYLOAD = {
 
 GARBAGE = {"foo": "bar"}
 
+EMPTY_RACES_PAYLOAD = {
+    "specialist": "HIPOTOUR",
+    "races": [],
+    "requires_human_review": True,
+    "global_confidence": 0.0,
+}
+
 
 def test_repair_retry_recovers_and_flags_review() -> None:
     provider = ScriptedProvider([GARBAGE, VALID_PAYLOAD])
@@ -50,6 +57,17 @@ def test_double_failure_falls_back_to_text_parser_with_review() -> None:
     result = normalize_prediction(provider, "HIPOTOUR", "1) 2-1-3\n2) 4-5-1", 2, {1: [1, 2, 3], 2: [1, 4, 5]})
 
     assert len(provider.calls) == 2  # normalización + 1 reintento, no más
+    assert [(race.pick_1, race.pick_2, race.pick_3) for race in result.races] == [(2, 1, 3), (4, 5, 1)]
+    assert result.requires_human_review is True
+
+
+def test_empty_races_payload_falls_back_to_text_parser() -> None:
+    # groq falla y el reintento devuelve un payload válido pero SIN carreras:
+    # no debe devolverse vacío, sino recuperar los picks con el parser determinista.
+    provider = ScriptedProvider([GARBAGE, EMPTY_RACES_PAYLOAD])
+
+    result = normalize_prediction(provider, "HIPOTOUR", "1) 2-1-3\n2) 4-5-1", 2, {1: [1, 2, 3], 2: [1, 4, 5]})
+
     assert [(race.pick_1, race.pick_2, race.pick_3) for race in result.races] == [(2, 1, 3), (4, 5, 1)]
     assert result.requires_human_review is True
 

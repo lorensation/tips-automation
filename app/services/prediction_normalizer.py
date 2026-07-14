@@ -24,8 +24,9 @@ Formatos frecuentes:
 - Dos líneas por carrera: "1 carrera" seguido de "2-1-3" significa carrera 1 con picks 2,1,3.
 - WhatsApp: "[11:36] Nombre: 2) 2-1-5" significa carrera 2 con picks 2,1,5.
 - Con caballo favorito: "1. DUKES OF HAATHER. 1-3-2" significa carrera 1 con picks 1,3,2.
+- Dorsal y nombre intercalados: "1 carrera: 1 Mauro 2 flaming glass 3 machu pichu" significa carrera 1 con picks 1,2,3 (cada número es el dorsal que precede al nombre del caballo).
 - También pueden aparecer ":" en lugar de "." o ")" para numerar carreras.
-Extrae siempre el triplete final de números separados por guion o barra como picks."""
+Extrae los picks como el triplete de números separados por guion o barra, o los dorsales que preceden a cada nombre de caballo."""
 
 REPAIR_SYSTEM_PROMPT = """Eres un reparador de JSON.
 Tu única tarea es devolver EXCLUSIVAMENTE un JSON válido conforme al schema indicado.
@@ -62,9 +63,14 @@ def normalize_prediction(
         raise
 
     try:
-        return NormalizedPrediction.model_validate(data)
+        candidate = NormalizedPrediction.model_validate(data)
     except _PARSE_ERRORS as first_error:
         logger.info("LLM payload for %s did not validate (%s); coercing.", specialist_name, type(first_error).__name__)
+    else:
+        # Un payload sin carreras es válido para el schema pero inútil: seguimos intentando recuperar picks.
+        if candidate.races:
+            return candidate
+        logger.info("LLM payload for %s validated but contained no races; attempting recovery.", specialist_name)
 
     # Reparación local: coerción de claves/formatos alternativos.
     try:
@@ -92,14 +98,18 @@ def normalize_prediction(
             logger.warning("Repair call failed for %s.", specialist_name, exc_info=True)
             break
         try:
-            return _mark_repaired(NormalizedPrediction.model_validate(data), "Payload LLM reparado con reintento.")
+            candidate = NormalizedPrediction.model_validate(data)
         except _PARSE_ERRORS:
-            try:
-                repaired = _coerce_llm_payload(data, specialist_name)
-                if repaired.get("races"):
-                    return _mark_repaired(NormalizedPrediction.model_validate(repaired), "Payload LLM reparado con reintento.")
-            except _PARSE_ERRORS:
-                continue
+            candidate = None
+        # Solo aceptamos el reintento si trae carreras; si no, caemos al parser determinista.
+        if candidate is not None and candidate.races:
+            return _mark_repaired(candidate, "Payload LLM reparado con reintento.")
+        try:
+            repaired = _coerce_llm_payload(data, specialist_name)
+            if repaired.get("races"):
+                return _mark_repaired(NormalizedPrediction.model_validate(repaired), "Payload LLM reparado con reintento.")
+        except _PARSE_ERRORS:
+            continue
 
     fallback = _normalize_from_text_parser(specialist_name, raw_text, total_races, "Invalid LLM JSON shape; deterministic fallback used.")
     if fallback.races:
