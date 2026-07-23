@@ -42,6 +42,25 @@ def test_parse_partant_supports_masculine_ordinal_race_headers() -> None:
     assert parsed[0].participants[1].horse_name == "KATXORRO"
 
 
+def test_parse_partant_supports_headers_without_carrera_word() -> None:
+    parsed = _parse_text_partant(
+        """
+        1º PREMIO SAN SEBASTIÁN GASTRONOMIKA (Hándicap 1ª Parte)
+        9.625 Euros a repartir - 2.200 metros. Hora: 10:42
+        Nº CABALLO ACCES. EDAD KG JINETE PROPIETARIO PREPARADOR CAJÓN ULT.ACTUAC.
+        1 SIR POLO (IRE) 5 63 E.A. RODRÍGUEZ (61) C. CORREDORES AGRUPADOS J. LÓPEZ 1 5,8,7,4,Desc
+        2 NAT IMPACT (GB) (8) 5 59,5 B. FAYOS C. ÁFRICA J.M. OSORIO 8 1,6,1,6,8
+        """
+    )
+
+    assert parsed[0].race_number == 1
+    assert parsed[0].name == "PREMIO SAN SEBASTIÁN GASTRONOMIKA (Hándicap 1ª Parte)"
+    assert parsed[0].distance_meters == 2200
+    assert parsed[0].scheduled_time == "10:42"
+    assert parsed[0].participants[0].horse_name == "SIR POLO"
+    assert parsed[0].participants[1].horse_name == "NAT IMPACT"
+
+
 def test_parse_partant_supports_thousands_separator_in_distance() -> None:
     parsed = _parse_text_partant(
         """

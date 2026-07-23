@@ -96,21 +96,59 @@ uvicorn app.main:app --reload
 - Drive y email requieren outputs revisados y confirmación explícita.
 - Los secretos se configuran por variables de entorno o Secret Manager, nunca en el repo.
 
-## Despliegue Cloud Run (futuro)
+## Despliegue en VM (Oracle Cloud Free / Hetzner)
 
-El contenedor escucha en `$PORT`. Configuración recomendada:
+Recomendado: una VM pequeña con `docker compose` + Tailscale. Mantiene la
+decisión de no exponer nada a Internet (la app solo es accesible dentro del
+tailnet, igual que en [docs/runbook_iphone.md](docs/runbook_iphone.md)) y el
+disco persistente conserva `data/PRONOS 2026.xlsx`, `uploads/` y `generated/`
+sin cambios en el código.
+
+### Opciones de proveedor
+
+- **Oracle Cloud Always Free** ($0/mes): VM Ampere ARM. Desde junio 2026 el
+  tier gratuito es 2 OCPU / 12 GB RAM y ~200 GB de disco — de sobra para esta
+  app (el render de Chromium necesita ~1 GB). Pegas: según la región puede
+  haber falta de capacidad al crear la instancia (ayuda pasar la cuenta a
+  Pay-As-You-Go, que sigue costando $0 si solo se usan recursos free) y la
+  CPU es ARM64 (ver nota abajo).
+- **Hetzner Cloud** (~4 €/mes): CX22 (x86, 2 vCPU / 4 GB / 40 GB NVMe) o
+  CAX11 (ARM, algo más barato). Sin sorpresas y con datacenter en la UE.
+
+### Pasos
 
 ```bash
-gcloud run deploy hipodromo-tips \
-  --source . \
-  --region europe-west1 \
-  --allow-unauthenticated \
-  --memory 1Gi \
-  --cpu 1 \
-  --min-instances 0 \
-  --max-instances 1 \
-  --concurrency 3 \
-  --timeout 300
+# En la VM (Ubuntu/Debian):
+curl -fsSL https://get.docker.com | sh
+git clone <repo> && cd tips-automation
+cp .env.example .env            # APP_SECRET_KEY, ADMIN_*, claves LLM/SMTP/Drive
+docker compose up -d --build    # incluye Postgres; restart: unless-stopped
+
+# Acceso privado (mismo esquema que docs/runbook_iphone.md):
+curl -fsSL https://tailscale.com/install.sh | sh
+sudo tailscale up
 ```
 
-Usar Secret Manager para `APP_SECRET_KEY`, `DATABASE_URL`, claves LLM, SMTP y Google Drive.
+Abrir `http://<nombre-vm>.<tailnet>.ts.net:8080` desde cualquier dispositivo
+del tailnet (opcional: `sudo tailscale serve --bg 8080` para HTTPS con
+certificado válido). **No abrir el puerto 8080 en el firewall público de la
+VM**: en Oracle, no añadir ingress rules a la Security List más allá de SSH;
+en Hetzner, crear un Cloud Firewall que solo permita SSH entrante (Tailscale
+no necesita puertos abiertos). Ojo: Docker publica puertos saltándose `ufw`,
+por eso Postgres va mapeado a `127.0.0.1` en `docker-compose.yml` — no
+cambiarlo a `0.0.0.0` en una VM pública.
+
+### Nota ARM64 (Oracle Ampere / Hetzner CAX)
+
+La imagen se construye nativa en la propia VM (`docker compose build`);
+`python:3.12-slim-bookworm`, Playwright/Chromium y `psycopg[binary]` publican
+binarios arm64. Tras el primer despliegue, generar un cuadro PNG de prueba
+para verificar el render de Chromium.
+
+### Por qué no Cloud Run (descartado)
+
+Su filesystem es efímero: el acumulativo `data/PRONOS 2026.xlsx` (escritura
+atómica + backups con restauración) necesitaría un mount GCS FUSE que no
+tiene file locking ni semántica POSIX de `rename`, y además la URL sería
+pública. Para una herramienta de un solo usuario no compensa la
+re-arquitectura; una VM con disco reproduce el entorno local tal cual.

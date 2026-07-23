@@ -26,7 +26,14 @@ def _extract_text(path: Path) -> str:
 def _parse_text_partant(text: str) -> list[ParsedRace]:
     races: list[ParsedRace] = []
     current: ParsedRace | None = None
-    race_re = re.compile(r"^\s*(?P<num>\d+)\s*(?:ª|º|a|o|\.|-)?\s*CARRERA\b(?P<name>.*)$", re.IGNORECASE)
+    # Some hipódromo templates omit the word "CARRERA" entirely and go straight
+    # from the ordinal to "PREMIO ..." (e.g. "1º PREMIO SAN SEBASTIÁN GASTRONOMIKA").
+    # The lookahead lets PREMIO anchor a header without being consumed, so it stays
+    # part of the captured name just like it does in the "CARRERA - PREMIO ..." case.
+    race_re = re.compile(
+        r"^\s*(?P<num>\d+)\s*(?:ª|º|a|o|\.|-)?\s*(?:CARRERA\b|(?=PREMIO\b))(?P<name>.*)$",
+        re.IGNORECASE,
+    )
     participant_re = re.compile(r"^\s*(?P<num>\d{1,2})\s+[-.)]?\s*(?P<name>.+?)\s*$")
     distance_re = re.compile(r"(?P<distance>\d{1,2}(?:\.\d{3})|\d{3,4})\s*(?:m|metros)", re.IGNORECASE)
     time_re = re.compile(r"(?P<time>\d{1,2}:\d{2})")
